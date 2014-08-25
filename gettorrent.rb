@@ -44,15 +44,44 @@ def downloadShow(magnet)
     system "transmission-remote -a \"#{magnet}\""
 end
 
-shows.each do |key,value|
-    puts "Processing show: #{value}(#{key})"
+def getEpisodeNumber(magnet)
+    episodeMatch = magnet.match(/dn=.*\.[Ss]?(\d+)[XxEe](\d+)/)
+    return episodeMatch[2].to_i
+end
+
+def getSeasonNumber(magnet)
+    seasonMatch = magnet.match(/dn=.*\.[Ss]?(\d+)[XxEe](\d+)/)
+    return seasonMatch[1].to_i
+end
+
+def getUniqueEpisodes(magnetArray, fileContentsArray)
+    downloadableMagnets = Array.new
+    
+    magnetArray.each do |magnet|
+        season = getSeasonNumber(magnet)
+        episode = getEpisodeNumber(magnet)
+        re = /dn=.*\.[Ss]?0?#{season}[XxEe]0?#{episode}\./
+        episodeMagnetCount = downloadableMagnets.grep(re).count
+        episodeFileCount = fileContentsArray.grep(re).count
+        if episodeMagnetCount == 0 && episodeFileCount == 0
+            downloadableMagnets.push(magnet)
+        end
+    end
+    
+    return downloadableMagnets
+end
+
+shows.each do |id,name|
+    puts "Processing show: #{name}(#{id})"
     
     folderName = "shows"
-    fileName = "#{folderName}/#{value}.txt"
+    fileName = "#{folderName}/#{name}.txt"
     contents = Array.new
+    
     unless File.exists?(folderName)
         Dir.mkdir(folderName)
     end
+    
     if File.exists?(fileName)
         file = File.open(fileName, 'r')
             
@@ -61,13 +90,22 @@ shows.each do |key,value|
         }
     end
     
-    File.open(fileName, 'a') {|f|
-        magnets = getMagnetLinks(key,value)
-        magnets.each do |val|
-            if ! contents.include?(val)
-                downloadShow(val)
-		f.puts val
+    newMagnets = Array.new
+
+    File.open(fileName, 'a') do |f|
+        magnets = getMagnetLinks(id,name)
+        magnets.each do |magnet|
+            if ! contents.include?(magnet)
+                newMagnets.push magnet
+                f.puts magnet
             end
-        end        
-    }
+        end
+    end
+
+    uniqueEpisodes = getUniqueEpisodes(newMagnets,contents)
+    uniqueEpisodes.each do |magnet|
+        #downloadShow(magnet)
+        puts magnet
+    end
 end
+
