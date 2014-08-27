@@ -68,7 +68,7 @@ shows.each do |id,name|
         uniqueEpisodes = EzTVClass.getUniqueEpisodes(newMagnets,contents)
     
         uniqueEpisodes.each do |magnet|
-            if skipDownload then
+            if options[:skipDownload] then
                 puts match
             else
                 EzTVClass.downloadShow(magnet)
